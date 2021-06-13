@@ -8,3 +8,6 @@ include_directories(./include)
 add_subdirectory(./HelloWorld_CUDA)
 
 add_subdirectory(./SumArrays_CUDA)
+add_subdirectory(./ShowDeviceInformation_CUDA)
+
+add_subdirectory(./AddTimeForKernelFunction_CUDA)

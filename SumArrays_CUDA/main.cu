@@ -35,6 +35,10 @@ void sumArraysOnHost(float *A, float *B, float *C, const int N) {
 
 __global__ void sumArraysOnDevice(float *A, float *B, float *C) {
     int idx = threadIdx.x;
+    int blockID = blockIdx.x;
+
+    printf("blockIdx:%d threadIdx:%d\n", blockID, idx);
+
     C[idx] = A[idx] + B[idx];
 }
 
@@ -69,7 +73,7 @@ int main(int argc, char **argv) {
     cudaMemcpy(d_B, h_B, sizeof(float) * N, cudaMemcpyHostToDevice);
 
     // 3. calculate on device
-    dim3 block(N);
+    dim3 block(8);
     dim3 grid(N / block.x);
     sumArraysOnDevice<<<grid, block>>>(d_A, d_B, d_C);
 
