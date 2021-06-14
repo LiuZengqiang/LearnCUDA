@@ -25,6 +25,8 @@ int main(int argc, char **argv) {
     printf("Vector size %d\n", n_element);
     size_t n_Bytes = n_element * sizeof(float);
     double i_start, i_elapse;
+
+
     // 1. malloc host memory
     float *h_A, *h_B, *h_ref, *d_ref;
     h_A = (float *) malloc(n_Bytes);
@@ -41,9 +43,12 @@ int main(int argc, char **argv) {
     memset(h_ref, 0, sizeof(n_Bytes));
     memset(d_ref, 0, sizeof(n_Bytes));
     i_elapse = cpuSecond();
-    printf("Initial data in host cost %f second", i_elapse - i_start);
+    printf("Initial data in host cost %f second.\n", i_elapse - i_start);
     // 2.5 calculate result on host
+    i_start = cpuSecond();
     sumArrayOnHost(h_A, h_B, h_ref, n_element);
+    i_elapse = cpuSecond();
+    printf("Calculate results on cpu cost %f second.\n", i_elapse - i_start);
 
     // 3. malloc memory on device
     float *d_A, *d_B, *d_C;
@@ -56,12 +61,15 @@ int main(int argc, char **argv) {
     cudaMemcpy(d_B, h_B, n_Bytes, cudaMemcpyHostToDevice);
 
     // 5. invoke kernel at host side
+    i_start = cpuSecond();
     int i_len = 1024;
     dim3 block(i_len);
     dim3 grid((n_element + block.x - 1) / block.x);
     sumArraysOnGPU<<<grid, block>>>(d_A, d_B, d_C, n_element);
     // 5.5 synchronize cuda global function
     cudaDeviceSynchronize();
+    i_elapse = cpuSecond();
+    printf("Calculate results on gpu cost %f second.\n", i_elapse - i_start);
 
     // 6. copy results from device to host
     cudaMemcpy(d_ref, d_C, n_Bytes, cudaMemcpyDeviceToHost);
@@ -78,8 +86,6 @@ int main(int argc, char **argv) {
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);
-
-
     return 0;
 }
 
@@ -104,13 +110,12 @@ void sumArrayOnHost(float *h_A, float *h_B, float *h_ref, int n_element) {
 }
 
 __global__ void sumArraysOnGPU(float *d_A, float *d_B, float *d_C, int n_element) {
-//    unsigned int id = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int id = getIdx();
-    printf("thread id:%d\n", id);
-    if (id >= n_element) {
+
+    unsigned int thread_id = getThreadId();
+    if (thread_id >= n_element) {
         return;
     }
-    d_C[id] = d_A[id] + d_B[id];
+    d_C[thread_id] = d_A[thread_id] + d_B[thread_id];
 };
 
 void checkResults(float *h_ref, float *d_ref, int n_element) {
